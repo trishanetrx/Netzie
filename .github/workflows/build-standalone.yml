@@ -1,0 +1,68 @@
+name: Build Standalone Executable
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build Windows Standalone EXE
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restore Dependencies
+        run: dotnet restore NetSentry.csproj
+
+      - name: Publish Single-File Standalone Executable
+        run: |
+          dotnet publish NetSentry.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:EnableCompressionInSingleFile=true -o ./artifacts
+
+      - name: Package Portable ZIP
+        shell: pwsh
+        run: |
+          Compress-Archive -Path ./artifacts/NetSentry.exe, README.md -DestinationPath ./artifacts/NetSentry-Portable-win-x64.zip
+          Get-ChildItem ./artifacts
+
+      - name: Upload Standalone Executable Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: NetSentry-Standalone-win-x64
+          path: ./artifacts/NetSentry.exe
+          if-no-files-found: error
+
+      - name: Upload Portable ZIP Bundle Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: NetSentry-Portable-ZIP
+          path: ./artifacts/NetSentry-Portable-win-x64.zip
+          if-no-files-found: error
+
+      - name: Release Standalone Binaries
+        uses: softprops/action-gh-release@v2
+        continue-on-error: true
+        with:
+          tag_name: latest
+          name: "NetSentry Standalone (Latest)"
+          body: |
+            ### 🚀 NetSentry (Netzie) Automated Standalone Build
+            Automated build from the `main` branch.
+
+            - **NetSentry.exe**: Standalone zero-dependency executable (run directly on any 64-bit Windows machine without installing .NET).
+            - **NetSentry-Portable-win-x64.zip**: Portable ZIP bundle.
+          files: |
+            ./artifacts/NetSentry.exe
+            ./artifacts/NetSentry-Portable-win-x64.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
