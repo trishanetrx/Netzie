@@ -42,3 +42,7 @@ error.log
 .DS_Store
 Thumbs.db
 ehthumbs.db
+
+## Test artifacts
+TestResults/
+*.trx

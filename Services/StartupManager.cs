@@ -2,6 +2,7 @@ using System;
 using System.Diagnostics;
 using System.IO;
 using Microsoft.Win32;
+using Serilog;
 
 namespace NetSentry.Services
 {
@@ -19,8 +20,9 @@ namespace NetSentry.Services
                 var val = key.GetValue(AppName) as string;
                 return !string.IsNullOrEmpty(val);
             }
-            catch
+            catch (Exception ex)
             {
+                Log.Debug(ex, "Could not check run-on-startup registry state");
                 return false;
             }
         }
@@ -34,6 +36,7 @@ namespace NetSentry.Services
                 if (key == null)
                 {
                     error = "Could not open registry Run key.";
+                    Log.Error("Could not access HKCU Run registry key");
                     return false;
                 }
 
@@ -46,16 +49,19 @@ namespace NetSentry.Services
                     // Launch with --minimized flag so it starts quietly in tray on Windows login
                     string command = string.Format("\"{0}\" --minimized", exePath);
                     key.SetValue(AppName, command);
+                    Log.Information("Enabled Run-on-Startup: {Cmd}", command);
                 }
                 else
                 {
                     key.DeleteValue(AppName, false);
+                    Log.Information("Disabled Run-on-Startup");
                 }
                 return true;
             }
             catch (Exception ex)
             {
                 error = ex.Message;
+                Log.Error(ex, "Failed to toggle Run-on-Startup state to {Enable}", enable);
                 return false;
             }
         }

@@ -5,6 +5,8 @@ VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NetSentry", "NetSentry.csproj", "{DA939BF3-4650-406E-96A8-21D809A53447}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NetSentry.Tests", "NetSentry.Tests\NetSentry.Tests.csproj", "{AA120EED-4BB4-4A29-813A-D2BBDDC18651}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -18,5 +20,9 @@ Global
 		{DA939BF3-4650-406E-96A8-21D809A53447}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{DA939BF3-4650-406E-96A8-21D809A53447}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{DA939BF3-4650-406E-96A8-21D809A53447}.Release|Any CPU.Build.0 = Release|Any CPU
+		{AA120EED-4BB4-4A29-813A-D2BBDDC18651}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AA120EED-4BB4-4A29-813A-D2BBDDC18651}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AA120EED-4BB4-4A29-813A-D2BBDDC18651}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AA120EED-4BB4-4A29-813A-D2BBDDC18651}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

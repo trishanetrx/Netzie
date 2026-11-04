@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text.Json;
 using NetSentry.Models;
+using Serilog;
 
 namespace NetSentry.Services
 {
@@ -44,10 +45,14 @@ namespace NetSentry.Services
                             {
                                 s.IsCurrentSession = false;
                             }
+                            Log.Information("Loaded {Count} historical network session records from disk", _sessions.Count);
                         }
                     }
                 }
-                catch { }
+                catch (Exception ex)
+                {
+                    Log.Warning(ex, "Failed to load session history from {Path}", HistoryFile);
+                }
             }
         }
 
@@ -151,7 +156,10 @@ namespace NetSentry.Services
                 File.WriteAllText(HistoryFile, json);
                 _lastSavedTime = DateTime.UtcNow;
             }
-            catch { }
+            catch (Exception ex)
+            {
+                Log.Warning(ex, "Failed to save session history to {Path}", HistoryFile);
+            }
         }
     }
 }

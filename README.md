@@ -1,5 +1,9 @@
 # NetSentry - Real-Time Bandwidth Guard & Firewall Sentinel
 
+[![Build & Test](https://github.com/trishanetrx/Netzie/actions/workflows/build-standalone.yml/badge.svg)](https://github.com/trishanetrx/Netzie/actions/workflows/build-standalone.yml)
+[![Release](https://img.shields.io/github/v/release/trishanetrx/Netzie?include_prereleases&label=release)](https://github.com/trishanetrx/Netzie/releases)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 **NetSentry** is a high-performance Windows desktop application designed to protect mobile hotspot and capped internet connections by monitoring real-time network usage and giving you full 1-click control over background data drains.
 
 ---
@@ -65,6 +69,15 @@ Manage built-in Windows Update and Store background services directly from the a
 
 ---
 
+## 📚 Documentation & Architecture
+
+* **User Guide:** [`docs/USER_GUIDE.md`](docs/USER_GUIDE.md)
+* **Production Roadmap:** [`docs/Production_Roadmap.md`](docs/Production_Roadmap.md)
+* **Windows Update Hardening Summary:** [`docs/Windows_Update_Disable_Summary.md`](docs/Windows_Update_Disable_Summary.md)
+* **License:** [MIT](LICENSE)
+
+---
+
 ## Location, Downloads & Releases
 
 * **GitHub Repository:** [github.com/trishanetrx/Netzie](https://github.com/trishanetrx/Netzie)
@@ -72,7 +85,6 @@ Manage built-in Windows Update and Store background services directly from the a
 * **Standalone Portable Executable:** `F:\INTERNET\NetSentry\Standalone\NetSentry.exe` (Zero runtime dependencies, copy & run anywhere!)
 * **Desktop Shortcut:** `C:\Users\Trishane\Desktop\NetSentry.lnk`
 * **Local Source Solution:** `F:\INTERNET\NetSentry` (.NET 8 WPF)
-* **Hardening & Security Audit Guide:** [`docs/Windows_Update_Disable_Summary.md`](docs/Windows_Update_Disable_Summary.md)
 
 ---
 

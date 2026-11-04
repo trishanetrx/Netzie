@@ -3,6 +3,7 @@ using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Windows;
 using System.Windows.Forms;
+using Serilog;
 
 namespace NetSentry.Services
 {
@@ -162,7 +163,10 @@ namespace NetSentry.Services
             {
                 _notifyIcon.ShowBalloonTip(4000);
             }
-            catch { }
+            catch (Exception ex)
+            {
+                Log.Warning(ex, "Failed to display system tray balloon tip notification");
+            }
         }
 
         private static Icon CreateShieldIcon(Color accentColor)

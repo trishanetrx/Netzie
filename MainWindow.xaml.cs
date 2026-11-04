@@ -8,6 +8,7 @@ using Microsoft.Win32;
 using NetSentry.Models;
 using NetSentry.Services;
 using NetSentry.Views;
+using Serilog;
 
 // Disambiguate WPF types from WinForms usings
 using MessageBox = System.Windows.MessageBox;
@@ -653,7 +654,10 @@ namespace NetSentry
                 TxtLifetimeUpload.Text = string.Format("↑ {0}", ProcessNetworkInfo.FormatBytes(stats.totalTx));
                 TxtTotalSessionCount.Text = string.Format("({0} Sessions logged)", stats.sessionCount);
             }
-            catch { }
+            catch (Exception ex)
+            {
+                Log.Warning(ex, "Error refreshing session history display in UI");
+            }
         }
 
         private void BtnRefreshHistory_Click(object sender, RoutedEventArgs e)

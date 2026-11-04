@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Text.Json;
+using Serilog;
 
 namespace NetSentry.Services
 {
@@ -32,7 +33,10 @@ namespace NetSentry.Services
                         if (settings != null) return settings;
                     }
                 }
-                catch { }
+                catch (Exception ex)
+                {
+                    Log.Warning(ex, "Failed to parse settings file at {Path}. Using default settings.", SettingsFile);
+                }
                 return new AppSettings();
             }
         }
@@ -47,7 +51,10 @@ namespace NetSentry.Services
                     string json = JsonSerializer.Serialize(settings, new JsonSerializerOptions { WriteIndented = true });
                     File.WriteAllText(SettingsFile, json);
                 }
-                catch { }
+                catch (Exception ex)
+                {
+                    Log.Warning(ex, "Failed to persist application settings to {Path}", SettingsFile);
+                }
             }
         }
     }

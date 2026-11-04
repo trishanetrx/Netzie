@@ -14,6 +14,7 @@ using System.Windows.Threading;
 using Microsoft.Diagnostics.Tracing.Parsers;
 using Microsoft.Diagnostics.Tracing.Session;
 using NetSentry.Models;
+using Serilog;
 
 namespace NetSentry.Services
 {
@@ -23,6 +24,8 @@ namespace NetSentry.Services
         private Thread? _etwThread;
         private TraceEventSession? _etwSession;
         private bool _isDisposed;
+
+        public bool IsEtwActive { get; private set; }
 
         // ETW delta counters
         private readonly ConcurrentDictionary<int, ProcessByteDelta> _etwDeltas = new();
@@ -146,8 +149,34 @@ namespace NetSentry.Services
             _lastSampleTime = DateTime.UtcNow;
         }
 
+        private void CleanupStaleEtwSessions()
+        {
+            try
+            {
+                var sessions = TraceEventSession.GetActiveSessionNames();
+                foreach (var name in sessions)
+                {
+                    if (name != null && name.StartsWith("NetSentryKernelSession_", StringComparison.OrdinalIgnoreCase))
+                    {
+                        try
+                        {
+                            using var stale = new TraceEventSession(name) { StopOnDispose = true };
+                            Log.Information("Cleaned up orphaned ETW session: {SessionName}", name);
+                        }
+                        catch { }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.Debug(ex, "Could not enumerate active ETW sessions for cleanup");
+            }
+        }
+
         private void StartEtwSession()
         {
+            CleanupStaleEtwSessions();
+
             _etwThread = new Thread(() =>
             {
                 try
@@ -165,16 +194,19 @@ namespace NetSentry.Services
                     _etwSession.Source.Kernel.UdpIpRecvIPV6 += data => RecordEtwBytes(data.ProcessID, data.size, 0);
                     _etwSession.Source.Kernel.UdpIpSendIPV6 += data => RecordEtwBytes(data.ProcessID, 0, data.size);
 
+                    IsEtwActive = true;
+                    Log.Information("ETW Kernel network tracing session started: {SessionName}", sessionName);
                     _etwSession.Source.Process();
                 }
-                catch
+                catch (Exception ex)
                 {
-                    // If running without elevation, ETW will fail gracefully; Win32 IO counters take over!
+                    IsEtwActive = false;
+                    Log.Warning("ETW Kernel network tracing unavailable: {Msg}. Operating in Win32 IO mode.", ex.Message);
                 }
             })
             {
                 IsBackground = true,
-                Priority = ThreadPriority.AboveNormal
+                Priority = ThreadPriority.Normal
             };
 
             _etwThread.Start();
@@ -196,9 +228,14 @@ namespace NetSentry.Services
                 {
                     _etwSession.Dispose();
                     _etwSession = null;
+                    IsEtwActive = false;
+                    Log.Information("ETW Kernel tracing session disposed.");
                 }
             }
-            catch { }
+            catch (Exception ex)
+            {
+                Log.Warning(ex, "Exception while stopping ETW session");
+            }
         }
 
         private void OnTick(object? sender, EventArgs e)

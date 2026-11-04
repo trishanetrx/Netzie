@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using NetSentry.Models;
+using Serilog;
 
 namespace NetSentry.Services
 {
@@ -70,7 +71,11 @@ namespace NetSentry.Services
                 p.WaitForExit(1000);
                 return output.Contains("Enabled:") && output.Contains("Yes") && output.Contains("Action:") && output.Contains("Block");
             }
-            catch { return false; }
+            catch (Exception ex)
+            {
+                Log.Debug(ex, "Failed to query rule status for '{Rule}'", ruleName);
+                return false;
+            }
         }
 
         public static bool ToggleServiceGroup(string groupId, bool block, out string error)
@@ -190,7 +195,10 @@ namespace NetSentry.Services
                     }
                 }
             }
-            catch { }
+            catch (Exception ex)
+            {
+                Log.Debug(ex, "Could not resolve WindowsPackageManagerServer path");
+            }
             return string.Empty;
         }
 
@@ -208,7 +216,10 @@ namespace NetSentry.Services
                 using var p = Process.Start(psi);
                 p?.WaitForExit(5000);
             }
-            catch { }
+            catch (Exception ex)
+            {
+                Log.Warning(ex, "Failed running netsh command with args: {Args}", args);
+            }
         }
 
         private static void RunPowerShell(string command)
@@ -225,7 +236,10 @@ namespace NetSentry.Services
                 using var p = Process.Start(psi);
                 p?.WaitForExit(6000);
             }
-            catch { }
+            catch (Exception ex)
+            {
+                Log.Warning(ex, "Failed running PowerShell command: {Command}", command);
+            }
         }
     }
 }

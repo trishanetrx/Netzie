@@ -3,57 +3,142 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using NetSentry.Models;
+using Serilog;
 
 namespace NetSentry.Services
 {
     public class FirewallManager
     {
+        private static readonly object _cacheLock = new();
+        private static List<BlockedRuleInfo>? _cachedRules;
+        private static DateTime _lastRulesFetch = DateTime.MinValue;
+        private static readonly TimeSpan CacheDuration = TimeSpan.FromSeconds(5);
+
+        public static string SanitizeArgument(string? input)
+        {
+            if (string.IsNullOrWhiteSpace(input)) return string.Empty;
+            string clean = input
+                .Replace("\"", "")
+                .Replace("&", "")
+                .Replace("|", "")
+                .Replace(">", "")
+                .Replace("<", "")
+                .Replace(";", "")
+                .Replace("`", "")
+                .Replace("\r", "")
+                .Replace("\n", "")
+                .Trim();
+
+            while (clean.Contains("  "))
+            {
+                clean = clean.Replace("  ", " ");
+            }
+
+            return clean;
+        }
+
+        public static void InvalidateCache()
+        {
+            lock (_cacheLock)
+            {
+                _cachedRules = null;
+                _lastRulesFetch = DateTime.MinValue;
+            }
+        }
+
         public static bool BlockApplication(string processName, string exePath, out string error)
         {
             error = string.Empty;
-            if (string.IsNullOrWhiteSpace(exePath) || !File.Exists(exePath))
+            string cleanPath = SanitizeArgument(exePath);
+            string cleanName = SanitizeArgument(processName);
+
+            if (string.IsNullOrWhiteSpace(cleanPath) || !File.Exists(cleanPath))
             {
                 error = "Executable path is invalid or file does not exist.";
+                Log.Warning("BlockApplication rejected invalid executable path: {Path}", exePath);
                 return false;
             }
 
-            string ruleName = "NetSentry Block: " + processName;
-            string arguments = string.Format("advfirewall firewall add rule name=\"{0}\" dir=out action=block program=\"{1}\" enable=yes", ruleName, exePath);
+            string ruleName = "NetSentry Block: " + cleanName;
+            string arguments = string.Format("advfirewall firewall add rule name=\"{0}\" dir=out action=block program=\"{1}\" enable=yes", ruleName, cleanPath);
 
-            return RunNetsh(arguments, out error);
+            Log.Information("Attempting to block application '{Name}' at '{Path}'", cleanName, cleanPath);
+            bool success = RunNetsh(arguments, out error);
+            if (success)
+            {
+                InvalidateCache();
+                Log.Information("Successfully blocked application '{Name}'", cleanName);
+            }
+            else
+            {
+                Log.Error("Failed to block application '{Name}': {Error}", cleanName, error);
+            }
+
+            return success;
         }
 
         public static bool BlockService(string serviceName, out string error)
         {
             error = string.Empty;
-            string ruleName = "NetSentry Block Service: " + serviceName;
-            string arguments = string.Format("advfirewall firewall add rule name=\"{0}\" dir=out action=block service=\"{1}\" enable=yes", ruleName, serviceName);
+            string cleanService = SanitizeArgument(serviceName);
+            string ruleName = "NetSentry Block Service: " + cleanService;
+            string arguments = string.Format("advfirewall firewall add rule name=\"{0}\" dir=out action=block service=\"{1}\" enable=yes", ruleName, cleanService);
 
-            return RunNetsh(arguments, out error);
+            Log.Information("Attempting to block service '{Service}'", cleanService);
+            bool success = RunNetsh(arguments, out error);
+            if (success)
+            {
+                InvalidateCache();
+                Log.Information("Successfully blocked service '{Service}'", cleanService);
+            }
+            else
+            {
+                Log.Error("Failed to block service '{Service}': {Error}", cleanService, error);
+            }
+
+            return success;
         }
 
         public static bool UnblockRule(string ruleName, out string error)
         {
             error = string.Empty;
-            string arguments = string.Format("advfirewall firewall delete rule name=\"{0}\"", ruleName);
-            return RunNetsh(arguments, out error);
+            string cleanRule = SanitizeArgument(ruleName);
+            string arguments = string.Format("advfirewall firewall delete rule name=\"{0}\"", cleanRule);
+
+            Log.Information("Attempting to delete firewall rule '{Rule}'", cleanRule);
+            bool success = RunNetsh(arguments, out error);
+            if (success)
+            {
+                InvalidateCache();
+                Log.Information("Successfully removed firewall rule '{Rule}'", cleanRule);
+            }
+            else
+            {
+                Log.Warning("Failed to delete firewall rule '{Rule}': {Error}", cleanRule, error);
+            }
+
+            return success;
         }
 
         public static bool UnblockApplication(string processName, string exePath, out string error)
         {
             error = string.Empty;
-            string ruleName = "NetSentry Block: " + processName;
+            string cleanName = SanitizeArgument(processName);
+            string cleanPath = SanitizeArgument(exePath);
+
+            string ruleName = "NetSentry Block: " + cleanName;
             
             // Delete by exact rule name
             bool ok = UnblockRule(ruleName, out error);
 
             // Also delete any existing rules matching the exact program path
-            if (!string.IsNullOrEmpty(exePath))
+            if (!string.IsNullOrEmpty(cleanPath))
             {
-                string args = string.Format("advfirewall firewall delete rule name=all program=\"{0}\"", exePath);
+                string args = string.Format("advfirewall firewall delete rule name=all program=\"{0}\"", cleanPath);
                 RunNetsh(args, out _);
             }
 
+            InvalidateCache();
             return ok;
         }
 
@@ -77,7 +162,10 @@ namespace NetSentry.Services
                     }
                 }
             }
-            catch { }
+            catch (Exception ex)
+            {
+                Log.Warning(ex, "Error compiling blocked process names set");
+            }
             return set;
         }
 
@@ -86,19 +174,29 @@ namespace NetSentry.Services
             error = string.Empty;
             try
             {
-                var proc = Process.GetProcessById(processId);
+                using var proc = Process.GetProcessById(processId);
                 proc.Kill(true);
+                Log.Information("Successfully terminated process {PID} ({Name})", processId, proc.ProcessName);
                 return true;
             }
             catch (Exception ex)
             {
                 error = ex.Message;
+                Log.Warning(ex, "Failed to terminate process {PID}", processId);
                 return false;
             }
         }
 
         public static List<BlockedRuleInfo> GetBlockedRules()
         {
+            lock (_cacheLock)
+            {
+                if (_cachedRules != null && (DateTime.UtcNow - _lastRulesFetch) < CacheDuration)
+                {
+                    return new List<BlockedRuleInfo>(_cachedRules);
+                }
+            }
+
             var list = new List<BlockedRuleInfo>();
             try
             {
@@ -180,8 +278,17 @@ namespace NetSentry.Services
                         });
                     }
                 }
+
+                lock (_cacheLock)
+                {
+                    _cachedRules = list;
+                    _lastRulesFetch = DateTime.UtcNow;
+                }
             }
-            catch { }
+            catch (Exception ex)
+            {
+                Log.Warning(ex, "Failed to retrieve firewall blocked rules via netsh");
+            }
 
             return list;
         }
@@ -205,6 +312,7 @@ namespace NetSentry.Services
                 if (proc == null)
                 {
                     output = "Failed to launch netsh process.";
+                    Log.Error("Could not start netsh.exe process");
                     return false;
                 }
 
@@ -218,11 +326,13 @@ namespace NetSentry.Services
                 }
 
                 if (!string.IsNullOrEmpty(err)) output += " " + err;
+                Log.Warning("netsh returned non-zero ({Code}): {Output}", proc.ExitCode, output);
                 return false;
             }
             catch (Exception ex)
             {
                 output = ex.Message;
+                Log.Error(ex, "Exception running netsh: {Args}", arguments);
                 return false;
             }
         }
