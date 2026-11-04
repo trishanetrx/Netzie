@@ -65,13 +65,14 @@ Manage built-in Windows Update and Store background services directly from the a
 
 ---
 
-## Location & Shortcuts
+## Location, Downloads & Releases
 
+* **GitHub Repository:** [github.com/trishanetrx/Netzie](https://github.com/trishanetrx/Netzie)
+* **Automated CI/CD Builds:** Download directly from [GitHub Releases](https://github.com/trishanetrx/Netzie/releases) or the [Actions Tab](https://github.com/trishanetrx/Netzie/actions)
+* **Standalone Portable Executable:** `F:\INTERNET\NetSentry\Standalone\NetSentry.exe` (Zero runtime dependencies, copy & run anywhere!)
 * **Desktop Shortcut:** `C:\Users\Trishane\Desktop\NetSentry.lnk`
-* **Application Executable:** `F:\INTERNET\NetSentry\Publish\NetSentry.exe`
-* **Standalone Portable Single-File Executable:** `F:\INTERNET\NetSentry\Standalone\NetSentry.exe` (Zero runtime dependencies, copy & run anywhere!)
-* **Portable Compressed Bundle:** `F:\INTERNET\NetSentry_v1.2_Portable.zip`
-* **Source Code Solution:** `F:\INTERNET\NetSentry` (.NET 8 WPF)
+* **Local Source Solution:** `F:\INTERNET\NetSentry` (.NET 8 WPF)
+* **Hardening & Security Audit Guide:** [`docs/Windows_Update_Disable_Summary.md`](docs/Windows_Update_Disable_Summary.md)
 
 ---
 
