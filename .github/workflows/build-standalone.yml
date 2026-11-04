@@ -3,6 +3,12 @@ name: Build Standalone Executable
 on:
   push:
     branches: [ main ]
+    paths-ignore:
+      - 'docs/**'
+      - '*.md'
+      - 'LICENSE'
+      - '.editorconfig'
+      - '.gitignore'
   workflow_dispatch:
 
 permissions:
