@@ -1,0 +1,44 @@
+## Build and output directories
+bin/
+obj/
+Publish/
+Standalone/
+*.zip
+
+## Visual Studio & IDE files
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+.vscode/
+.idea/
+
+## Build results
+[Dd]ebug/
+[Dd]ebugPublic/
+[Rr]elease/
+[Rr]eleases/
+x64/
+x86/
+bld/
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+crash.log
+error.log
+
+## User-specific files
+*.rsuser
+*.suo
+*.user
+*.userprefs
+*.pidb
+*.booproj
+*.svclog
+
+## OS generated files
+.DS_Store
+Thumbs.db
+ehthumbs.db
